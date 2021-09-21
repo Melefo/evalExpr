@@ -1,6 +1,13 @@
+--
+-- EPITECH PROJECT, 2021
+-- evalExpr
+-- File description:
+-- Main
+--
+
 module Main where
 
-import Lib
+import EvalExpr
 
 main :: IO ()
 main = someFunc

@@ -1,0 +1,5 @@
+.stack-work/
+*~
+funEvalExpr
+*.lock
+*.cabal

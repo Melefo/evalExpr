@@ -11,16 +11,14 @@ import Control.Exception ( Exception )
 import System.Exit ( ExitCode(ExitFailure), exitWith )
 
 data ParsingException = 
-    InvalidInput
+    NoArg | TooManyArg
     deriving Show
 
 instance Exception ParsingException
-
-usage :: IO ()
-usage = putStrLn ""
 
 exit :: IO ()
 exit = exitWith $ ExitFailure 84
 
 catchException :: ParsingException -> IO ()
-catchException _ = usage >> exit
+catchException NoArg = putStrLn "You must pass a valid expression to be evaluated" >> exit
+catchException TooManyArg = putStrLn "Too many arguments given" >> exit

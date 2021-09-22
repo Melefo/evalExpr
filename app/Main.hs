@@ -7,7 +7,11 @@
 
 module Main where
 
-import EvalExpr
+import System.Environment ( getArgs )
+import Control.Exception ( handle )
+import EvalExpr (evalExpr)
+import Errors ( catchException )
 
 main :: IO ()
-main = someFunc
+main = handle catchException $
+    getArgs >>= evalExpr

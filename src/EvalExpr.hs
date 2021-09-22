@@ -7,5 +7,5 @@
 
 module EvalExpr where
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+evalExpr :: [String] -> IO ()
+evalExpr _ = putStrLn "someFunc"

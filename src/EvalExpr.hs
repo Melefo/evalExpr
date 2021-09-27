@@ -59,7 +59,13 @@ parseMany p str =
             case parseMany p rest of
                 Just (c2, rest2) -> Just (c : c2, rest2)
                 _ -> Just ([c], rest)
-        _ -> Nothing
+        _ -> Just ([], str)
+
+parseSome :: Parser a -> Parser [a]
+parseSome p str = 
+    case parseMany p str of
+        Just ([], _) -> Nothing
+        j -> j
 
 evalExpr :: [String] -> IO ()
 evalExpr [] = throw NoArg

@@ -16,7 +16,7 @@ type Parser a = String -> Maybe (a , String)
 parseChar :: Char -> Parser Char
 parseChar _ [] = Nothing
 parseChar c (x:xs)
-    | c == x = Just(c, xs)
+    | c == x = Just (c, xs)
     | otherwise = Nothing
 
 parseAnyChar :: String -> Parser Char
@@ -31,41 +31,58 @@ parseOr p1 p2 str
     | isNothing $ p1 str = p2 str
     | otherwise = p1 str
 
-parseAnd :: Parser a -> Parser b -> Parser (a , b)
+parseAnd :: Parser a -> Parser b -> Parser (a, b)
 parseAnd _ _ [] = Nothing
 parseAnd p1 p2 str
-    | isNothing $ p1 str = Nothing
-    | isNothing $ p2 $ tail str = Nothing
-    | otherwise =
-        case p1 str of
-            Just (a, b) -> case p2 b of
-                Just (c, d) -> Just ((a,c), d)
-                _ -> Nothing
-            _ -> Nothing
+    | Just (a, b) <- p1 str
+    , Just (c, d) <- p2 b =
+        Just ((a, c), d)
+    | otherwise = Nothing
 
 parseAndWith :: (a -> b -> c) -> Parser a -> Parser b -> Parser c
 parseAndWith _ _ _ [] = Nothing
 parseAndWith func p1 p2 str
-    | isNothing $ parseAnd p1 p2 str = Nothing
-    | otherwise =
-        case parseAnd p1 p2 str of
-            Just ((c1, c2), result) -> Just (func c1 c2, result)
-            _  -> Nothing
+    | Just ((c1, c2), rest) <- parseAnd p1 p2 str =
+        Just (func c1 c2, rest)
+    | otherwise = Nothing
 
 parseMany :: Parser a -> Parser [a]
-parseMany p str = 
-    case p str of
-        Just (c, rest) ->
-            case parseMany p rest of
-                Just (c2, rest2) -> Just (c : c2, rest2)
-                _ -> Just ([c], rest)
-        _ -> Just ([], str)
+parseMany p str
+    | Just (c, rest) <- p str
+    , Just (c2, rest2) <- parseMany p rest =
+        Just (c : c2, rest2)
+    | Just (c, rest) <- p str
+    , Nothing <- parseMany p rest  =
+        Just ([c], rest)
+    | otherwise = Just([], str)
 
 parseSome :: Parser a -> Parser [a]
-parseSome p str = 
-    case parseMany p str of
-        Just ([], _) -> Nothing
-        j -> j
+parseSome p str
+    | Just ([], _) <- parseMany p str = Nothing
+    | otherwise = parseMany p str
+
+parseUInt :: Parser Int -- parse an unsigned Int
+parseUInt str
+    | Just (x, xs) <- parseInt str
+    , x > 0 = Just (x, xs)
+    | otherwise = Nothing
+
+parseInt :: Parser Int -- parse an signed Int
+parseInt str
+    | [(x, xs)] <- reads str :: [(Int, String)] =
+        Just (x, xs)
+    | otherwise = Nothing
+
+parseTuple :: Parser a -> Parser (a, a) -- parse a tuple
+parseTuple _ [] = Nothing
+parseTuple p (x:xs)
+    | x == '('
+    , Just (y, ys) <- p xs
+    , head ys == ','
+    , Just (z, zs) <- p $ tail ys
+    , head zs == ')' =
+        Just ((y, z), tail zs)
+    | otherwise = Nothing
 
 evalExpr :: [String] -> IO ()
 evalExpr [] = throw NoArg

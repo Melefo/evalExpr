@@ -77,11 +77,11 @@ parseTuple :: Parser a -> Parser (a, a) -- parse a tuple
 parseTuple _ [] = Nothing
 parseTuple p (x:xs)
     | x == '('
-    , Just (y, ys) <- p xs
-    , head ys == ','
-    , Just (z, zs) <- p $ tail ys
-    , head zs == ')' =
-        Just ((y, z), tail zs)
+    , Just (a, y:ys) <- p xs
+    , y == ','
+    , Just (b, z:zs) <- p ys
+    , z == ')' =
+        Just ((a, b), zs)
     | otherwise = Nothing
 
 evalExpr :: [String] -> IO ()

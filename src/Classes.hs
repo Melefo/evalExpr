@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 --
 -- EPITECH PROJECT, 2021
 -- evalExpr [WSL: Ubuntu]
@@ -7,9 +9,96 @@
 
 module Classes where
 
+import Data.Maybe
+
 data Parser a = Parser {
     runParser :: String -> Maybe (a, String)
 }
-
+-- IsString
 parseChar :: Char -> Parser Char
-parseChar c = Parser c
+parseChar c = Parser (\case
+        (x:xs) -> if x == c
+            then Just (c, xs)
+            else Nothing
+        _ -> Nothing
+    )
+
+parseAnyChar :: String -> Parser Char
+parseAnyChar [] = Parser (const Nothing)
+parseAnyChar (x:xs) = Parser (\str ->
+        if isNothing $ runParser (parseChar x) str
+            then runParser (parseAnyChar xs) str
+            else Just (x, tail str)
+    )
+
+parseOr :: Parser a -> Parser a -> Parser a
+parseOr p1 p2 = Parser (\str ->
+        if isNothing $ runParser p1 str
+            then runParser p2 str
+            else runParser p1 str
+    )
+
+parseAnd :: Parser a -> Parser b -> Parser (a, b)
+parseAnd p1 p2 = Parser (\str ->
+        case runParser p1 str of
+            Just (a, b) ->
+                case runParser p2 b of
+                    Just (c, d) -> Just ((a, c), d)
+                    _ -> Nothing
+            _ -> Nothing
+    )
+
+parseAndWith :: (a -> b -> c) -> Parser a -> Parser b -> Parser c
+parseAndWith func p1 p2 = Parser (\str ->
+        case runParser (parseAnd p1 p2) str of
+            Just ((c1, c2), rest) -> Just (func c1 c2, rest)
+            _ -> Nothing
+    )
+
+parseMany :: Parser a -> Parser [a]
+parseMany p = Parser (\str ->
+        case runParser p str of
+            Just (c, rest) ->
+                case runParser (parseMany p) rest of
+                    Just (c2, rest2) -> Just (c : c2, rest2)
+                    _ -> Just ([c], rest)
+            _ -> Just ([], str)
+    )
+
+parseSome :: Parser a -> Parser [a]
+parseSome p = Parser (\str ->
+        case runParser (parseMany p) str of
+            Just ([], _) -> Nothing
+            _ -> runParser (parseMany p) str
+    )
+
+parseUInt :: Parser Int
+parseUInt = Parser (\str ->
+        case runParser parseInt str of
+            Just (x, xs) -> if x > 0
+                then Just (x, xs)
+                else Nothing
+            _ -> Nothing
+    )
+
+parseInt :: Parser Int
+parseInt = Parser (\str ->
+        case reads str :: [(Int, String)] of
+            [(x, xs)] -> Just (x, xs)
+            _ -> Nothing
+    )
+
+parseTuple :: Parser a -> Parser (a, a)
+parseTuple p1 = Parser (\(x:xs) ->
+        if x == '('
+            then (case runParser p1 xs of
+                Just (a,bf:bs) -> if bf == ','
+                    then (case runParser p1 bs of
+                        Just (z, yf:ys) -> if yf == ')'
+                            then Just ((a, z), ys)
+                            else Nothing
+                        _ -> Nothing)
+                    else Nothing
+                _ -> Nothing)
+            else Nothing
+    )

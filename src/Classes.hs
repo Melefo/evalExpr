@@ -11,7 +11,7 @@
 module Classes where
 
 import Data.Maybe
-import GHC.Base (Maybe(Nothing))
+import Control.Applicative
 
 data Parser a = Parser {
     runParser :: String -> Maybe (a, String)
@@ -25,15 +25,26 @@ instance Functor Parser where
                 _ -> Nothing
         )
 
-instance Applicative Parser where   
+instance Applicative Parser where
     pure a = Parser (\x -> Just (a, x))
     (<*>) fct parser =
         Parser (\x ->
             case runParser parser x of
                 Just (a, b) -> case runParser fct b of
                     Just (c, d) -> Just (c a, d)
-                    _  -> Nothing     
-                _ -> Nothing               
+                    _  -> Nothing
+                _ -> Nothing
+        )
+
+instance Alternative Parser where
+    empty = Parser (const Nothing)
+    (<|>) f1 f2 =  Parser (\x ->
+            case runParser f1 x of
+                Just (a, b) -> Just (a, b)
+                _ ->
+                    case runParser f2 x of
+                        Just (c, d) -> Just (c, d)
+                        _ -> empty
         )
 
 parseChar :: Char -> Parser Char

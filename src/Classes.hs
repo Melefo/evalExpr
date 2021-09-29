@@ -17,23 +17,23 @@ data Parser a = Parser {
     runParser :: String -> Maybe (a, String)
 }
 
-instance Applicative Parser where   
-    pure a = Parser (\x -> Just (a, x))
-    (<*>) fct parser =
-        Parser (\x ->
-            case runParser parser x of
-                Nothing -> Nothing
-                Just (a, b) -> case runParser fct b of
-                    Just (c, d) -> Just (fct a, d)
-                    Nothing  -> Nothing                    
-        )
-
 instance Functor Parser where
     fmap fct parser =
         Parser (\str ->
             case runParser parser str of
                 Just (x, y) -> Just (fct x, y)
                 _ -> Nothing
+        )
+
+instance Applicative Parser where   
+    pure a = Parser (\x -> Just (a, x))
+    (<*>) fct parser =
+        Parser (\x ->
+            case runParser parser x of
+                Just (a, b) -> case runParser fct b of
+                    Just (c, d) -> Just (c a, d)
+                    _  -> Nothing     
+                _ -> Nothing               
         )
 
 parseChar :: Char -> Parser Char

@@ -7,14 +7,35 @@
 -- Classes
 --
 
+
 module Classes where
 
 import Data.Maybe
+import GHC.Base (Maybe(Nothing))
 
 data Parser a = Parser {
     runParser :: String -> Maybe (a, String)
 }
--- IsString
+
+instance Applicative Parser where   
+    pure a = Parser (\x -> Just (a, x))
+    (<*>) fct parser =
+        Parser (\x ->
+            case runParser parser x of
+                Nothing -> Nothing
+                Just (a, b) -> case runParser fct b of
+                    Just (c, d) -> Just (fct a, d)
+                    Nothing  -> Nothing                    
+        )
+
+instance Functor Parser where
+    fmap fct parser =
+        Parser (\str ->
+            case runParser parser str of
+                Just (x, y) -> Just (fct x, y)
+                _ -> Nothing
+        )
+
 parseChar :: Char -> Parser Char
 parseChar c = Parser (\case
         (x:xs) -> if x == c
@@ -33,9 +54,9 @@ parseAnyChar (x:xs) = Parser (\str ->
 
 parseOr :: Parser a -> Parser a -> Parser a
 parseOr p1 p2 = Parser (\str ->
-        if isNothing $ runParser p1 str
-            then runParser p2 str
-            else runParser p1 str
+        case runParser p1 str of
+            Nothing -> runParser p2 str
+            result -> result
     )
 
 parseAnd :: Parser a -> Parser b -> Parser (a, b)
@@ -89,16 +110,17 @@ parseInt = Parser (\str ->
     )
 
 parseTuple :: Parser a -> Parser (a, a)
-parseTuple p1 = Parser (\(x:xs) ->
-        if x == '('
-            then (case runParser p1 xs of
+parseTuple p1 = Parser (\case
+        (x:xs) -> if x == '('
+            then case runParser p1 xs of
                 Just (a,bf:bs) -> if bf == ','
-                    then (case runParser p1 bs of
+                    then case runParser p1 bs of
                         Just (z, yf:ys) -> if yf == ')'
                             then Just ((a, z), ys)
                             else Nothing
-                        _ -> Nothing)
+                        _ -> Nothing
                     else Nothing
-                _ -> Nothing)
+                _ -> Nothing
             else Nothing
+        _ -> Nothing
     )

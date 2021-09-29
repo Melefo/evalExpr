@@ -47,6 +47,15 @@ instance Alternative Parser where
                         _ -> empty
         )
 
+instance Monad Parser where
+    (>>=) f1 f2 = Parser (\x ->
+            case runParser f1 x of
+                Nothing -> Nothing
+                Just (a, b) -> case runParser (f2 a) b of
+                    Nothing -> Nothing
+                    Just (c, d) -> Just (c, d)
+        )
+
 parseChar :: Char -> Parser Char
 parseChar c = Parser (\case
         (x:xs) -> if x == c
